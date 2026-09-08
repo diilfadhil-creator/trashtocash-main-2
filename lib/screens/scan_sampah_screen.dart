@@ -8,6 +8,7 @@ import 'package:trashtocash/screens/detail_jemput_screen.dart';
 import 'package:trashtocash/screens/detail_transaksi_screen.dart';
 import 'package:trashtocash/screens/live_camera_scan_screen.dart';
 import 'package:trashtocash/screens/panduan_sampah_screen.dart';
+import 'package:trashtocash/services/backend_api_service.dart';
 
 class WasteCategory {
   final String id;
@@ -16,7 +17,7 @@ class WasteCategory {
   final String sampleItem;
   final double ratePerKg;
   final int ecoPoints;
-  final IconData icon;
+  final IconData icon;  
   final String imageUrl;
   final String description;
   final String handlingTip;
@@ -257,17 +258,32 @@ class _ScanSampahScreenState extends State<ScanSampahScreen>
         imageQuality: 85,
       );
       if (picked != null && mounted) {
+        final imageFile = File(picked.path);
         setState(() {
-          _capturedImageFile = File(picked.path);
+          _capturedImageFile = imageFile;
           _isAiAnalyzing = true;
         });
 
-        // Simulasi analisis AI Vision
-        await Future.delayed(const Duration(milliseconds: 1400));
+        // Send photo to NodeJS Backend API (Google Gemini AI Multimodal Vision)
+        final result = await BackendApiService.instance.analyzeWasteImageWithBackend(
+          imageFile: imageFile,
+          categoryFilter: _filterType,
+        );
+
         if (mounted) {
           setState(() {
             _isAiAnalyzing = false;
+            _weight = result.estimatedWeightKg;
+
+            // Auto-select matched category or update selected item
+            final matched = _allCategories.firstWhere(
+              (c) => c.name.toLowerCase().contains(result.wasteItem.name.toLowerCase()) ||
+                     result.wasteItem.name.toLowerCase().contains(c.name.toLowerCase()),
+              orElse: () => WasteCategory.fromModel(result.wasteItem),
+            );
+            _selectedCategory = matched;
           });
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: const Color(0xFF0D6938),
@@ -277,11 +293,11 @@ class _ScanSampahScreenState extends State<ScanSampahScreen>
               ),
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  const Icon(Icons.stars_rounded, color: Colors.amber, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'AI Berhasil Mendeteksi: ${_selectedCategory.name}',
+                      'Gemini AI Deteksi: ${result.wasteItem.name} (${(result.confidenceScore * 100).toInt()}%)',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -297,6 +313,11 @@ class _ScanSampahScreenState extends State<ScanSampahScreen>
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
+      if (mounted) {
+        setState(() {
+          _isAiAnalyzing = false;
+        });
+      }
     }
   }
 

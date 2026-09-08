@@ -9,6 +9,7 @@ import 'package:trashtocash/models/waste_item_model.dart';
 import 'package:trashtocash/screens/detail_jemput_screen.dart';
 import 'package:trashtocash/screens/detail_transaksi_screen.dart';
 import 'package:trashtocash/screens/panduan_sampah_screen.dart';
+import 'package:trashtocash/services/backend_api_service.dart';
 import 'package:trashtocash/services/camera_service.dart';
 
 class LiveCameraScanScreen extends StatefulWidget {
@@ -349,11 +350,10 @@ class _LiveCameraScanScreenState extends State<LiveCameraScanScreen>
     });
 
     if (_scanMode == 0) {
-      // Mode AI Waste Scan
-      final result = await CameraService.instance.analyzeWasteImage(
+      // Mode AI Waste Scan via NodeJS Gemini Backend API
+      final result = await BackendApiService.instance.analyzeWasteImageWithBackend(
         imageFile: capturedFile,
         categoryFilter: _categoryFilter,
-        targetWasteItem: widget.preselectedItem,
       );
 
       if (mounted) {
@@ -394,10 +394,9 @@ class _LiveCameraScanScreenState extends State<LiveCameraScanScreen>
           _isAnalyzing = true;
         });
 
-        final result = await CameraService.instance.analyzeWasteImage(
+        final result = await BackendApiService.instance.analyzeWasteImageWithBackend(
           imageFile: file,
           categoryFilter: _categoryFilter,
-          targetWasteItem: widget.preselectedItem,
         );
 
         if (mounted) {
@@ -411,6 +410,40 @@ class _LiveCameraScanScreenState extends State<LiveCameraScanScreen>
     } catch (e) {
       debugPrint('Error picking from gallery: $e');
       _showMiniToast('Gagal memuat foto dari galeri');
+    }
+  }
+
+  Future<void> _pickFromSystemCamera() async {
+    try {
+      final picked = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 90,
+      );
+
+      if (picked != null && mounted) {
+        final file = File(picked.path);
+        setState(() {
+          _isAnalyzing = true;
+        });
+
+        final result = await BackendApiService.instance.analyzeWasteImageWithBackend(
+          imageFile: file,
+          categoryFilter: _categoryFilter,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isAnalyzing = false;
+          });
+
+          _showAiResultSheet(result);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking from system camera: $e');
+      _showMiniToast('Gagal membuka kamera sistem');
     }
   }
 
@@ -1841,32 +1874,66 @@ class _LiveCameraScanScreenState extends State<LiveCameraScanScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 1. Gallery Import Button
-          Column(
+          // 1. Gallery & System Camera Buttons
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              InkWell(
-                onTap: _pickFromGallery,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: _pickFromGallery,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white30),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white30),
+                      ),
+                      child: const Icon(
+                        Icons.photo_library_outlined,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.photo_library_outlined,
-                    color: Colors.white,
-                    size: 24,
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Galeri',
+                    style: TextStyle(color: Colors.white70, fontSize: 10),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Galeri',
-                style: TextStyle(color: Colors.white70, fontSize: 10),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: _pickFromSystemCamera,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white30),
+                      ),
+                      child: const Icon(
+                        Icons.camera_enhance_outlined,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Kamera HP',
+                    style: TextStyle(color: Colors.white70, fontSize: 10),
+                  ),
+                ],
               ),
             ],
           ),

@@ -59,7 +59,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(LiveGoogleMapWidget), findsOneWidget);
-      expect(find.text('Buka di Google Maps'), findsOneWidget);
+      expect(find.text('Buka Maps'), findsOneWidget);
       expect(find.byIcon(Icons.layers_outlined), findsOneWidget);
       expect(find.text('Kamera: Ikuti Driver 🛵'), findsOneWidget);
       expect(find.byIcon(Icons.gps_fixed), findsOneWidget);
@@ -83,7 +83,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(LiveGoogleMapWidget), findsOneWidget);
-      expect(find.text('Buka di Google Maps'), findsOneWidget);
+      expect(find.text('Buka Maps'), findsOneWidget);
       expect(find.text('Kamera: Ikuti Driver 🛵'), findsOneWidget);
     });
   });

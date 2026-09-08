@@ -140,12 +140,12 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
     setState(() {
       switch (_displayMode) {
         case GoogleMapDisplayMode.vectorInteractive:
-          _displayMode = GoogleMapDisplayMode.googleMapsNormal;
-          break;
-        case GoogleMapDisplayMode.googleMapsNormal:
           _displayMode = GoogleMapDisplayMode.googleMapsSatellite;
           break;
         case GoogleMapDisplayMode.googleMapsSatellite:
+          _displayMode = GoogleMapDisplayMode.googleMapsNormal;
+          break;
+        case GoogleMapDisplayMode.googleMapsNormal:
           _displayMode = GoogleMapDisplayMode.googleMapsTerrain;
           break;
         case GoogleMapDisplayMode.googleMapsTerrain:
@@ -155,14 +155,21 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
     });
   }
 
+  void _setMapMode(GoogleMapDisplayMode mode) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _displayMode = mode;
+    });
+  }
+
   String get _displayModeLabel {
     switch (_displayMode) {
       case GoogleMapDisplayMode.vectorInteractive:
-        return 'Peta Vektor HUD';
+        return 'Peta 3D Bangunan';
       case GoogleMapDisplayMode.googleMapsNormal:
         return 'Google Maps Standar';
       case GoogleMapDisplayMode.googleMapsSatellite:
-        return 'Google Maps Satelit';
+        return 'Citra Satelit HD';
       case GoogleMapDisplayMode.googleMapsTerrain:
         return 'Google Maps Medan';
     }
@@ -207,8 +214,9 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
             borderRadius: BorderRadius.circular(19),
             child: Stack(
               children: [
-                // 1. Map Layer: Native Google Maps or Vector HUD
+                // 1. Map Layer: Native Google Maps or Vector HUD 3D Bangunan
                 if (_displayMode != GoogleMapDisplayMode.vectorInteractive &&
+                    _displayMode != GoogleMapDisplayMode.googleMapsSatellite &&
                     !kIsWeb &&
                     (defaultTargetPlatform == TargetPlatform.android ||
                         defaultTargetPlatform == TargetPlatform.iOS))
@@ -217,15 +225,16 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                   _buildVectorInteractiveMap(isSystemDark, userGps),
 
                 // 2. Real-Time Moving Entities & HUD Overlay (for Vector HUD mode)
-                if (_displayMode == GoogleMapDisplayMode.vectorInteractive)
+                if (_displayMode == GoogleMapDisplayMode.vectorInteractive ||
+                    _displayMode == GoogleMapDisplayMode.googleMapsSatellite)
                   _buildVectorHudOverlay(userGps),
 
                 // 3. Top Dynamic Street Name & Live Navigation Header
                 if (widget.showNavigationBanner)
                   Positioned(
-                    top: 10,
-                    left: 10,
-                    right: 10,
+                    top: 8,
+                    left: 8,
+                    right: 8,
                     child: ValueListenableBuilder<RemoteDriverLocation>(
                       valueListenable:
                           DriverApiService.instance.driverLocationNotifier,
@@ -251,9 +260,51 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                     ),
                   ),
 
-                // 4. Auto-Follow Driver Status Badge (Top Left Under Banner)
+                // 4. Map Mode Selector Pills (3D Bangunan vs Satelit vs Standar)
                 Positioned(
-                  top: widget.showNavigationBanner ? 80 : 12,
+                  top: widget.showNavigationBanner ? 74 : 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildMapModeChip(
+                          label: '🛰️ Citra Satelit',
+                          isSelected:
+                              _displayMode == GoogleMapDisplayMode.googleMapsSatellite,
+                          onTap: () => _setMapMode(GoogleMapDisplayMode.googleMapsSatellite),
+                        ),
+                        _buildMapModeChip(
+                          label: '⛰️ Peta Medan',
+                          isSelected:
+                              _displayMode == GoogleMapDisplayMode.googleMapsTerrain,
+                          onTap: () => _setMapMode(GoogleMapDisplayMode.googleMapsTerrain),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 5. Compass & Recenter Status (Left Side below chips)
+                Positioned(
+                  bottom: 50,
                   left: 12,
                   child: GestureDetector(
                     onTap: _recenterOnDriver,
@@ -300,7 +351,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                                 ? 'Kamera: Ikuti Driver 🛵'
                                 : 'Pusatkan ke Driver 🎯',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 10.0,
                               fontWeight: FontWeight.bold,
                               color: _autoFollowDriver
                                   ? Colors.white
@@ -308,36 +359,6 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 5. Compass Dial (Top Right Under Banner)
-                Positioned(
-                  top: widget.showNavigationBanner ? 80 : 12,
-                  right: 12,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '🧭 N',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE53935),
-                        ),
                       ),
                     ),
                   ),
@@ -411,8 +432,8 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
+                          horizontal: 10,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -434,27 +455,27 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                           children: [
                             Image.network(
                               'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Google_Maps_icon_%282020%29.svg/100px-Google_Maps_icon_%282020%29.svg.png',
-                              width: 16,
-                              height: 16,
+                              width: 14,
+                              height: 14,
                               errorBuilder: (context, error, stackTrace) => const Icon(
                                 Icons.map,
                                 color: Color(0xFF4285F4),
-                                size: 15,
+                                size: 14,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             const Text(
-                              'Buka di Google Maps',
+                              'Buka Maps',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1A73E8),
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 3),
                             const Icon(
                               Icons.open_in_new,
-                              size: 12,
+                              size: 11,
                               color: Color(0xFF1A73E8),
                             ),
                           ],
@@ -468,6 +489,32 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMapModeChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF00E676) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.black87 : Colors.white70,
+          ),
+        ),
+      ),
     );
   }
 
@@ -524,8 +571,8 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
         return GoogleMap(
           initialCameraPosition: CameraPosition(
             target: currentDriverLatLng,
-            zoom: 16.0,
-            tilt: 35.0,
+            zoom: 16.5,
+            tilt: 45.0, // 45 degree tilt activates 3D building perspective
             bearing: loc.headingDegrees,
           ),
           mapType: _googleMapType,
@@ -534,6 +581,8 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
           compassEnabled: true,
           zoomControlsEnabled: false,
           trafficEnabled: true,
+          buildingsEnabled: true, // ENABLES 3D BUILDINGS IN NATIVE MAPS
+          indoorViewEnabled: true,
           markers: markers,
           polylines: polylines,
           onCameraMove: (_) {
@@ -549,7 +598,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
     );
   }
 
-  // --- VECTOR INTERACTIVE MAP ENGINE WITH DYNAMIC LIVE ROAD MOVEMENT ---
+  // --- VECTOR INTERACTIVE MAP ENGINE WITH DYNAMIC LIVE ROAD MOVEMENT & 3D BUILDINGS ---
   Widget _buildVectorInteractiveMap(bool isDark, UserGpsState userGps) {
     return ValueListenableBuilder<RemoteDriverLocation>(
       valueListenable: DriverApiService.instance.driverLocationNotifier,
@@ -753,9 +802,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              widget.isArrived
-                                  ? '🛵 Kurir Tiba!'
-                                  : '${widget.driverName} • ${loc.speedKmph.toStringAsFixed(0)} km/j',
+                              '${widget.driverName} (${loc.speedKmph.toStringAsFixed(0)} km/j)',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 9.5,
@@ -765,34 +812,31 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                           ],
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Radar Pulse Beacon
                           ScaleTransition(
                             scale: _pulseAnimation,
                             child: Container(
-                              width: 42,
-                              height: 42,
+                              width: 38,
+                              height: 38,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: const Color(0xFF00E676)
-                                    .withValues(alpha: 0.3),
+                                color: const Color(0xFF00E676).withValues(alpha: 0.35),
                               ),
                             ),
                           ),
-                          // Scooter Body with Orientation Angle
                           Transform.rotate(
                             angle: angleRadians + (pi / 2),
                             child: Container(
-                              width: 32,
-                              height: 32,
+                              width: 28,
+                              height: 28,
                               decoration: BoxDecoration(
                                 color: const Color(0xFF0D6938),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: const Color(0xFF00E676),
                                   width: 2,
                                 ),
                                 boxShadow: [
@@ -832,7 +876,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
     required bool isArrived,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF0D6938),
         borderRadius: BorderRadius.circular(16),
@@ -850,7 +894,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
@@ -858,10 +902,10 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                 child: Icon(
                   isArrived ? Icons.check_circle : Icons.turn_right_rounded,
                   color: Colors.white,
-                  size: 18,
+                  size: 16,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -874,19 +918,19 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11.5,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       isArrived
                           ? 'Silakan serahkan sampah & konfirmasi PIN'
                           : 'Sisa $remainingKm km • Tiba dlm $etaMin mnt (GPS ±${userGps.accuracy.toStringAsFixed(0)}m)',
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 10.5,
+                        fontSize: 10.0,
                       ),
                     ),
                   ],
@@ -903,7 +947,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
                   style: const TextStyle(
                     color: Colors.black87,
                     fontWeight: FontWeight.bold,
-                    fontSize: 10.5,
+                    fontSize: 10.0,
                   ),
                 ),
               ),
@@ -937,7 +981,7 @@ class _LiveGoogleMapWidgetState extends State<LiveGoogleMapWidget>
   }
 }
 
-/// Custom Google Maps Canvas Painter with Real-Time Moving Roads & Dynamic Badges
+/// Custom Google Maps Canvas Painter with Real-Time Moving Roads, 3D Buildings & Satellite Texture
 class _GoogleMapCanvasPainter extends CustomPainter {
   final bool isDark;
   final bool isSatellite;
@@ -973,28 +1017,38 @@ class _GoogleMapCanvasPainter extends CustomPainter {
     final double flowShiftY =
         autoFollow ? (driverProgress * 25.0) + offset.dy : offset.dy;
 
-    // 1. Terrain Land Fill
-    final Color terrainColor;
+    // 1. Terrain Base Layer (Normal vs Satellite View)
     if (isSatellite) {
-      terrainColor = const Color(0xFF233529);
-    } else if (isDark) {
-      terrainColor = const Color(0xFF21262D);
+      // Dark Satellite Earth Gradient Base
+      final satellitePaint = Paint()
+        ..color = const Color(0xFF1B2B1E);
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), satellitePaint);
+
+      // Satellite Imagery Grid Overlay Lines
+      final gridPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.05)
+        ..strokeWidth = 1.0;
+      for (double x = 0; x < size.width; x += 40) {
+        canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+      }
+      for (double y = 0; y < size.height; y += 40) {
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      }
     } else {
-      terrainColor = const Color(0xFFEDE8DC);
+      final terrainColor = isDark ? const Color(0xFF21262D) : const Color(0xFFEDE8DC);
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = terrainColor,
+      );
     }
 
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = terrainColor,
-    );
-
-    // 2. City Blocks & Parks
+    // 2. City Parks & Vegetation Foliage
     final parkColor = isSatellite
-        ? const Color(0xFF18281D)
+        ? const Color(0xFF0F1E13)
         : (isDark ? const Color(0xFF233628) : const Color(0xFFC8E6C9));
 
     final parkPaint = Paint()
-      ..color = parkColor.withValues(alpha: isSatellite ? 0.9 : 0.75)
+      ..color = parkColor
       ..style = PaintingStyle.fill;
 
     // Park 1 (Top Left)
@@ -1023,9 +1077,17 @@ class _GoogleMapCanvasPainter extends CustomPainter {
       ..close();
     canvas.drawPath(parkPath2, parkPaint);
 
+    // Tree clusters on parks in satellite view
+    if (isSatellite) {
+      final treePaint = Paint()..color = const Color(0xFF14301B);
+      canvas.drawCircle(Offset((size.width * 0.15) + flowShiftX, (size.height * 0.22) + flowShiftY), 14, treePaint);
+      canvas.drawCircle(Offset((size.width * 0.20) + flowShiftX, (size.height * 0.20) + flowShiftY), 10, treePaint);
+      canvas.drawCircle(Offset((size.width * 0.75) + flowShiftX, (size.height * 0.72) + flowShiftY), 16, treePaint);
+    }
+
     // 3. Water River Curve (Google Maps Blue)
     final riverColor = isSatellite
-        ? const Color(0xFF152A38)
+        ? const Color(0xFF0F2636)
         : (isDark ? const Color(0xFF183244) : const Color(0xFFA5CCE5));
 
     final riverPaint = Paint()
@@ -1046,7 +1108,7 @@ class _GoogleMapCanvasPainter extends CustomPainter {
 
     // 4. Secondary Grid Streets
     final streetColor = isSatellite
-        ? Colors.white.withValues(alpha: 0.18)
+        ? Colors.white.withValues(alpha: 0.25)
         : (isDark ? Colors.white.withValues(alpha: 0.09) : Colors.white);
 
     final streetPaint = Paint()
@@ -1071,13 +1133,17 @@ class _GoogleMapCanvasPainter extends CustomPainter {
 
     // 5. Main Arterial Highways (Yellow Google Maps Road Style)
     final highwayBorder = Paint()
-      ..color = isDark ? const Color(0xFF333333) : const Color(0xFFE0C17B)
+      ..color = isSatellite
+          ? const Color(0xFF3E4E3A)
+          : (isDark ? const Color(0xFF333333) : const Color(0xFFE0C17B))
       ..style = PaintingStyle.stroke
       ..strokeWidth = 10 * zoom
       ..strokeCap = StrokeCap.round;
 
     final highwayFill = Paint()
-      ..color = isDark ? const Color(0xFF4A4A4A) : const Color(0xFFFEE180)
+      ..color = isSatellite
+          ? const Color(0xFFFDD835)
+          : (isDark ? const Color(0xFF4A4A4A) : const Color(0xFFFEE180))
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8 * zoom
       ..strokeCap = StrokeCap.round;
@@ -1101,8 +1167,44 @@ class _GoogleMapCanvasPainter extends CustomPainter {
     canvas.drawPath(h2, highwayBorder);
     canvas.drawPath(h2, highwayFill);
 
-    // 6. REAL-TIME STREET NAMES & ROAD BADGES RENDERING
-    // Highway Label 1 (Arteri Utama)
+    // 6. MAP LOCATION PINS & LANDMARKS (Matching modern clean map design)
+    _drawMapPin(
+      canvas: canvas,
+      icon: '📍',
+      title: 'TPS Kebon Kacang',
+      position: Offset((size.width * 0.72) + flowShiftX, (size.height * 0.28) + flowShiftY),
+      pinColor: const Color(0xFF1E88E5),
+      isDark: isDark,
+    );
+
+    _drawMapPin(
+      canvas: canvas,
+      icon: '📍',
+      title: 'Bank Sampah Unit',
+      position: Offset((size.width * 0.38) + flowShiftX, (size.height * 0.62) + flowShiftY),
+      pinColor: const Color(0xFF1E88E5),
+      isDark: isDark,
+    );
+
+    _drawMapPin(
+      canvas: canvas,
+      icon: '🌳',
+      title: 'Taman Kota $districtName',
+      position: Offset((size.width * 0.16) + flowShiftX, (size.height * 0.24) + flowShiftY),
+      pinColor: const Color(0xFF43A047),
+      isDark: isDark,
+    );
+
+    _drawMapPin(
+      canvas: canvas,
+      icon: '🏬',
+      title: 'Pasar $districtName',
+      position: Offset((size.width * 0.78) + flowShiftX, (size.height * 0.74) + flowShiftY),
+      pinColor: const Color(0xFF8E24AA),
+      isDark: isDark,
+    );
+
+    // 7. REAL-TIME STREET NAMES & ROAD BADGES RENDERING
     _drawStreetBadge(
       canvas: canvas,
       text: 'Jl. Jend. Sudirman (Arteri)',
@@ -1114,7 +1216,6 @@ class _GoogleMapCanvasPainter extends CustomPainter {
       isDark: isDark,
     );
 
-    // Highway Label 2 (Arteri Vertikal)
     _drawStreetBadge(
       canvas: canvas,
       text: 'Jl. M.H. Thamrin',
@@ -1126,7 +1227,6 @@ class _GoogleMapCanvasPainter extends CustomPainter {
       isDark: isDark,
     );
 
-    // Driver's Current Street (Dynamically updated from GPS!)
     _drawStreetBadge(
       canvas: canvas,
       text: '📍 $driverStreet',
@@ -1138,52 +1238,151 @@ class _GoogleMapCanvasPainter extends CustomPainter {
       isDark: isDark,
     );
 
-    // Cross Street 1 (District name)
-    _drawStreetBadge(
-      canvas: canvas,
-      text: 'Jl. $districtName Raya',
-      position: Offset(
-        (size.width * 0.72) + flowShiftX,
-        (size.height * 0.28) + flowShiftY,
-      ),
-      isHighway: false,
-      isDark: isDark,
+    if (isSatellite) {
+      // Satellite Watermark
+      _drawSatelliteBadge(
+        canvas: canvas,
+        position: Offset(size.width * 0.5, size.height - 20),
+      );
+    }
+  }
+
+  void _drawMapPin({
+    required Canvas canvas,
+    required String icon,
+    required String title,
+    required Offset position,
+    required Color pinColor,
+    required bool isDark,
+  }) {
+    const double pinRadius = 11.0;
+
+    // Pin Shadow
+    canvas.drawCircle(
+      position.translate(0, 2),
+      pinRadius,
+      Paint()..color = Colors.black.withValues(alpha: 0.22),
     );
 
-    // Cross Street 2 (Local neighborhood)
-    _drawStreetBadge(
-      canvas: canvas,
-      text: 'Gg. Melati No. 4',
-      position: Offset(
-        (size.width * 0.40) + flowShiftX,
-        (size.height * 0.85) + flowShiftY,
-      ),
-      isHighway: false,
-      isDark: isDark,
+    // Pin Colored Background
+    canvas.drawCircle(
+      position,
+      pinRadius,
+      Paint()..color = pinColor,
     );
 
-    // POI / Landmark 1 (Park)
-    _drawPoiBadge(
-      canvas: canvas,
-      icon: '🌳',
-      name: 'Taman Kota $districtName',
-      position: Offset(
-        (size.width * 0.16) + flowShiftX,
-        (size.height * 0.24) + flowShiftY,
-      ),
-      isDark: isDark,
+    // White Center Core
+    canvas.drawCircle(
+      position,
+      pinRadius - 3.5,
+      Paint()..color = Colors.white,
     );
 
-    // POI / Landmark 2 (Mall/Pasar)
-    _drawPoiBadge(
-      canvas: canvas,
-      icon: '🏬',
-      name: 'Pasar $districtName',
-      position: Offset(
-        (size.width * 0.78) + flowShiftX,
-        (size.height * 0.74) + flowShiftY,
+    // Inner Dot Icon
+    canvas.drawCircle(
+      position,
+      pinRadius - 6.5,
+      Paint()..color = pinColor,
+    );
+
+    // Title Badge Floating Above Pin
+    if (title.isNotEmpty) {
+      final textStyle = TextStyle(
+        fontSize: 8.5,
+        fontWeight: FontWeight.bold,
+        color: isDark ? Colors.white : Colors.black87,
+      );
+
+      final textSpan = TextSpan(text: '$icon $title', style: textStyle);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final badgeWidth = textPainter.width + 10;
+      final badgeHeight = textPainter.height + 4;
+      final badgeRect = RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(position.dx, position.dy - 17),
+          width: badgeWidth,
+          height: badgeHeight,
+        ),
+        const Radius.circular(6),
+      );
+
+      canvas.drawRRect(
+        badgeRect,
+        Paint()
+          ..color = isDark
+              ? const Color(0xFF1E2822).withValues(alpha: 0.92)
+              : Colors.white.withValues(alpha: 0.95),
+      );
+
+      canvas.drawRRect(
+        badgeRect,
+        Paint()
+          ..color = pinColor.withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8,
+      );
+
+      textPainter.paint(
+        canvas,
+        Offset(
+          position.dx - (textPainter.width / 2),
+          position.dy - 17 - (textPainter.height / 2),
+        ),
+      );
+    }
+  }
+
+  void _drawSatelliteBadge({
+    required Canvas canvas,
+    required Offset position,
+  }) {
+    const textStyle = TextStyle(
+      fontSize: 9.0,
+      fontWeight: FontWeight.bold,
+      color: Color(0xFF00E676),
+      letterSpacing: 0.5,
+    );
+
+    const textSpan = TextSpan(text: 'CITRA SATELIT HD 🛰️ (Google Maps Engine)', style: textStyle);
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final badgeWidth = textPainter.width + 14;
+    final badgeHeight = textPainter.height + 6;
+    final badgeRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: position,
+        width: badgeWidth,
+        height: badgeHeight,
       ),
-      isDark: isDark,
+      const Radius.circular(10),
+    );
+
+    canvas.drawRRect(
+      badgeRect,
+      Paint()..color = Colors.black.withValues(alpha: 0.75),
+    );
+
+    canvas.drawRRect(
+      badgeRect,
+      Paint()
+        ..color = const Color(0xFF00E676)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+
+    textPainter.paint(
+      canvas,
+      Offset(
+        position.dx - (textPainter.width / 2),
+        position.dy - (textPainter.height / 2),
+      ),
     );
   }
 
@@ -1265,52 +1464,7 @@ class _GoogleMapCanvasPainter extends CustomPainter {
     );
   }
 
-  void _drawPoiBadge({
-    required Canvas canvas,
-    required String icon,
-    required String name,
-    required Offset position,
-    required bool isDark,
-  }) {
-    final textStyle = TextStyle(
-      fontSize: 8.0,
-      fontWeight: FontWeight.w600,
-      color: isDark ? Colors.white70 : const Color(0xFF333333),
-    );
 
-    final textSpan = TextSpan(text: '$icon $name', style: textStyle);
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final badgeWidth = textPainter.width + 10;
-    final badgeHeight = textPainter.height + 4;
-    final badgeRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: position,
-        width: badgeWidth,
-        height: badgeHeight,
-      ),
-      const Radius.circular(5),
-    );
-
-    canvas.drawRRect(
-      badgeRect,
-      Paint()
-        ..color = isDark
-            ? const Color(0xFF1E2822).withValues(alpha: 0.85)
-            : Colors.white.withValues(alpha: 0.85),
-    );
-
-    textPainter.paint(
-      canvas,
-      Offset(
-        position.dx - (textPainter.width / 2),
-        position.dy - (textPainter.height / 2),
-      ),
-    );
-  }
 
   @override
   bool shouldRepaint(covariant _GoogleMapCanvasPainter oldDelegate) {

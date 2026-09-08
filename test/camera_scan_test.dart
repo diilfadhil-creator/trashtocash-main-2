@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trashtocash/models/waste_item_model.dart';
 import 'package:trashtocash/screens/live_camera_scan_screen.dart';
+import 'package:trashtocash/services/backend_api_service.dart';
 import 'package:trashtocash/services/camera_service.dart';
 
 void main() {
@@ -69,8 +70,22 @@ void main() {
       expect(find.text('AI Sampah'), findsOneWidget);
       expect(find.text('Scan QR'), findsOneWidget);
       expect(find.text('Galeri'), findsOneWidget);
+      expect(find.text('Kamera HP'), findsOneWidget);
       expect(find.text('Katalog'), findsOneWidget);
       expect(find.byIcon(Icons.camera_alt), findsOneWidget);
+    });
+  });
+
+  group('BackendApiService Unit Tests', () {
+    test('BackendApiService handles offline fallback gracefully when backend is unreachable', () async {
+      final result = await BackendApiService.instance.analyzeWasteImageWithBackend(
+        categoryFilter: 'Non-Organik',
+      );
+
+      expect(result.wasteItem.name, isNotEmpty);
+      expect(result.confidenceScore, greaterThan(0));
+      expect(result.estimatedWeightKg, greaterThan(0));
+      expect(result.recyclingAdvice, isNotEmpty);
     });
   });
 }

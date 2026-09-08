@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trashtocash/helpers/database_helper.dart';
 import 'package:trashtocash/models/waste_item_model.dart';
+import 'package:trashtocash/screens/live_camera_scan_screen.dart';
 import 'package:trashtocash/screens/scan_sampah_screen.dart';
 
 class PanduanDaurUlangScreen extends StatefulWidget {
@@ -1002,150 +1003,542 @@ class _PanduanDaurUlangScreenState extends State<PanduanDaurUlangScreen>
     required String badgeText,
     required bool isDark,
   }) {
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
+        side: BorderSide(
           color: isDark ? Colors.white12 : Colors.grey.shade200,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row with Image Thumbnail & Rates
-          Padding(
-            padding: const EdgeInsets.all(14.0),
-            child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          _showCategoryDetailModal(
+            title: title,
+            sample: sample,
+            rate: rate,
+            points: points,
+            benefit: benefit,
+            tips: tips,
+            imageUrl: imageUrl,
+            icon: icon,
+            badgeColor: badgeColor,
+            badgeText: badgeText,
+            isDark: isDark,
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row with Image Thumbnail & Rates
+            Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      imageUrl,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 64,
+                        height: 64,
+                        color: const Color(0xFFEAF4EE),
+                        child: Icon(icon, color: const Color(0xFF0D6938), size: 28),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: badgeColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tarif: Rp $rate/kg  •  +$points Eco/kg',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0D6938),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                sample,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 12,
+                              color: Color(0xFF0D6938),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            // Benefit & Tips Box
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.recycling, size: 14, color: Color(0xFF0D6938)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Manfaat Olah: $benefit',
+                          style: const TextStyle(fontSize: 11, height: 1.25),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.lightbulb_outline, size: 14, color: Colors.orange),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Tips Pilah: $tips',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.25,
+                            color: isDark ? Colors.white70 : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show rich interactive detail modal when category card is clicked
+  void _showCategoryDetailModal({
+    required String title,
+    required String sample,
+    required String rate,
+    required String points,
+    required String benefit,
+    required String tips,
+    required String imageUrl,
+    required IconData icon,
+    required Color badgeColor,
+    required String badgeText,
+    required bool isDark,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 60,
-                      height: 60,
-                      color: const Color(0xFFEAF4EE),
-                      child: Icon(icon, color: const Color(0xFF0D6938)),
+                // Top Grab handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white30 : Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
+
+                // Hero Image with Gradient & Badge Overlay
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      child: Image.network(
+                        imageUrl,
+                        width: double.infinity,
+                        height: 190,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 190,
+                          color: const Color(0xFFEAF4EE),
+                          child: Icon(icon, size: 60, color: const Color(0xFF0D6938)),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.7),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icon, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              badgeText,
                               style: const TextStyle(
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 11,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 14,
+                      left: 16,
+                      right: 16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                          const SizedBox(height: 2),
+                          Text(
+                            sample,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
                             ),
-                            decoration: BoxDecoration(
-                              color: badgeColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              badgeText,
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: badgeColor,
-                              ),
-                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tarif: Rp $rate/kg  •  +$points Eco/kg',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D6938),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Key Statistics Row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D6938).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFF0D6938).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Tarif Penukaran',
+                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Rp $rate / kg',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Color(0xFF0D6938),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        sample,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Bonus EcoPoints',
+                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '+$points Pts / kg',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: isDark ? Colors.amberAccent : Colors.amber.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
 
-          // Benefit & Tips Box
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.recycling, size: 14, color: Color(0xFF0D6938)),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Manfaat Olah: $benefit',
-                        style: const TextStyle(fontSize: 11, height: 1.25),
+                const SizedBox(height: 18),
+
+                // Section 1: Contoh Barang Diterima
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF0D6938)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Contoh Barang yang Diterima',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          sample,
+                          style: const TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.lightbulb_outline, size: 14, color: Colors.orange),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Tips Pilah: $tips',
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1.25,
-                          color: isDark ? Colors.white70 : Colors.grey.shade700,
+
+                const SizedBox(height: 14),
+
+                // Section 2: Manfaat Daur Ulang
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.nature_people_outlined, size: 18, color: Color(0xFF0D6938)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Manfaat Olah & Nilai Lingkungan',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          benefit,
+                          style: const TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Section 3: Tips Penanganan
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.lightbulb_outline, size: 18, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text(
+                            'Tips Penanganan & Pemilahan',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          tips,
+                          style: const TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                // Bottom Action Button: Setor / Scan Sampah Ini Sekarang
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LiveCameraScanScreen(isPickup: false),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D6938),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 3,
+                      ),
+                      icon: const Icon(Icons.camera_alt, color: Colors.white),
+                      label: Text(
+                        'Setor / Scan $title Sekarang',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
+                const SizedBox(height: 12),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
