@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "974108948791",
+    "project_id": "trashtocash-project",
+    "storage_bucket": "trashtocash-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:974108948791:android:aafebfe779c848d34282b2",
+        "android_client_info": {
+          "package_name": "com.faty.trashtocash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQtauv8m9T_7GdlzFka4IunLygrPko3Wo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

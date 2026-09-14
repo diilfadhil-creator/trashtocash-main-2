@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:trashtocash/firebase_options.dart';
 import 'package:trashtocash/helpers/language_helper.dart';
 import 'package:trashtocash/helpers/theme_helper.dart';
 import 'package:trashtocash/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await ThemeHelper.initialize();
   await LanguageHelper.initialize();
   runApp(const MyApp());

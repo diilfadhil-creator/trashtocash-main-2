@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trashtocash/screens/driver/driver_home_screen.dart';
@@ -20,7 +21,8 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
 
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final fbUser = FirebaseAuth.instance.currentUser;
+    final isLoggedIn = (prefs.getBool('isLoggedIn') ?? false) || fbUser != null;
     final userRole = prefs.getString('userRole') ?? 'customer';
 
     if (!mounted) return;

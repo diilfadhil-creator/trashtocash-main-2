@@ -16,6 +16,8 @@ import 'package:trashtocash/screens/profile_screen.dart';
 import 'package:trashtocash/screens/reward_redemption_screen.dart';
 import 'package:trashtocash/screens/withdrawal_screen.dart';
 import 'package:trashtocash/widgets/user_level_sheet.dart';
+import 'package:trashtocash/screens/profile_firebase_screen.dart';
+import 'package:trashtocash/services/firebase_auth_service.dart';
 
 import 'login.dart';
 
@@ -138,6 +140,9 @@ class _HomeTrashToCashState extends State<HomeTrashToCash> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    try {
+      await FirebaseAuthService().signOut();
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
@@ -243,6 +248,22 @@ class _HomeTrashToCashState extends State<HomeTrashToCash> {
                   ),
                     Row(
                       children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.local_fire_department,
+                            color: Colors.amberAccent,
+                          ),
+                          tooltip: 'Profil Firebase (Step 10)',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ProfileFirebaseScreen(),
+                              ),
+                            );
+                          },
+                        ),
                         IconButton(
                           icon: const Icon(
                             Icons.two_wheeler,

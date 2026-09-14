@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trashtocash/helpers/database_helper.dart';
@@ -174,6 +175,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } catch (authErr) {
+        debugPrint('Firebase Auth notice: $authErr');
+      }
+
       final newUser = UserModel(
         name: name,
         email: email,

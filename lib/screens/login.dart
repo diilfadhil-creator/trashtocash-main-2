@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trashtocash/helpers/database_helper.dart';
@@ -5,6 +6,7 @@ import 'package:trashtocash/helpers/driver_helper.dart';
 import 'package:trashtocash/screens/driver/driver_home_screen.dart';
 import 'package:trashtocash/screens/home.dart';
 import 'package:trashtocash/screens/register.dart';
+import 'package:trashtocash/screens/login_firebase_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String initialRole;
@@ -54,7 +56,16 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Coba login dengan role yang dipilih
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } catch (authErr) {
+        debugPrint('Firebase Auth sign in notice: $authErr');
+      }
+
+      // 1. Coba login dengan role yang dipilih dari Firestore
       var user = await DatabaseHelper.instance.loginUserWithRole(
         email,
         password,
@@ -489,6 +500,46 @@ class _LoginScreenState extends State<LoginScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Row(
+                          children: [
+                            Expanded(child: Divider()),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                'atau',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
+                            Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginFirebaseScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.local_fire_department, color: Colors.orange),
+                          label: const Text(
+                            'Masuk via Firebase (Contoh Slide)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF0D6938),
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: Color(0xFF0D6938)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ],
